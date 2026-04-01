@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>膝关节MRI数据处理系统 | 面向MLLM的医疗多模态自动化预处理与标注系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1E6F5C;
+            --primary-light: #2C7A64;
+            --primary-dark: #165a48;
+            --bg-mint: #EFF7F2;
+            --bg-light: #F9FAFC;
+            --accent-blue: #EAF4FF;
+            --accent-amber: #FFE8D9;
+            --text-dark: #1a1a2e;
+            --text-gray: #4a5568;
+            --text-light: #718096;
+            --white: #ffffff;
+            --shadow-sm: 0 2px 8px rgba(30, 111, 92, 0.08);
+            --shadow-md: 0 8px 24px rgba(30, 111, 92, 0.12);
+            --shadow-lg: 0 16px 48px rgba(30, 111, 92, 0.16);
+            --radius-sm: 16px;
+            --radius-md: 24px;
+            --radius-lg: 32px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ========== 导航栏 ========== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 20px 24px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(30, 111, 92, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .logo-title {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-subtitle {
+            font-size: 11px;
+            color: var(--text-light);
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-link {
+            padding: 10px 18px;
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+            background: var(--bg-mint);
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+            background: var(--bg-mint);
+        }
+
+        .btn-demo {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: var(--white);
+            border: 2px solid transparent;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-demo:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ========== Hero Section ========== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 120px 24px 80px;
+            background: linear-gradient(180deg, var(--bg-mint) 0%, var(--bg-light) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(30, 111, 92, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(234, 244, 255, 0.5) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .hero-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content {
+            animation: fadeSlideUp 0.8s ease-out;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--accent-blue);
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 24px;
+        }
+
+        .hero-title {
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 800;
+            line-height: 1.1;
+            color: var(--text-dark);
+            margin-bottom: 20px;
+        }
+
+        .hero-title span {
+            color: var(--primary);
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--text-gray);
+            margin-bottom: 16px;
+        }
+
+        .hero-description {
+            font-size: 16px;
+            color: var(--text-light);
+            margin-bottom: 32px;
+            max-width: 500px;
+            line-height: 1.7;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        .btn-primary {
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            padding: 16px 32px;
+            background: var(--white);
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-mint);
+        }
+
+        /* ========== Data Flow Animation ========== */
+        .hero-visual {
+            position: relative;
+            height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flow-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .flow-node {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+
+        .flow-node:nth-child(1) { top: 20%; left: 10%; animation-delay: 0.1s; }
+        .flow-node:nth-child(2) { top: 50%; left: 30%; animation-delay: 0.3s; }
+        .flow-node:nth-child(3) { top: 50%; right: 30%; animation-delay: 0.5s; }
+        .flow-node:nth-child(4) { top: 20%; right: 10%; animation-delay: 0.7s; }
+
+        .node-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--white);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+        }
+
+        .flow-node:hover .node-icon {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .node-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-gray);
+            background: var(--white);
+            padding: 6px 12px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .flow-line {
+            position: absolute;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .flow-line::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, transparent 100%);
+            animation: flowLight 2s ease-in-out infinite;
+        }
+
+        .flow-line:nth-of-type(1) {
+            top: 28%;
+            left: 18%;
+            width: 120px;
+            transform: rotate(15deg);
+        }
+
+        .flow-line:nth-of-type(2) {
+            top: 55%;
+            left: 38%;
+            width: 150px;
+        }
+
+        .flow-line:nth-of-type(3) {
+            top: 55%;
+            right: 18%;
+            width: 150px;
+        }
+
+        .flow-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--primary);
+            animation: particleFlow 3s ease-in-out infinite;
+        }
+
+        .flow-particle:nth-child(6) { animation-delay: 0s; }
+        .flow-particle:nth-child(7) { animation-delay: 0.5s; }
+        .flow-particle:nth-child(8) { animation-delay: 1s; }
+
+        @keyframes flowLight {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        @keyframes particleFlow {
+            0% { top: 25%; left: 12%; opacity: 0; }
+            10% { opacity: 1; }
+            35% { top: 53%; left: 35%; }
+            65% { top: 53%; right: 35%; }
+            90% { opacity: 1; }
+            100% { top: 25%; right: 12%; opacity: 0; }
+        }
+
+        /* ========== Section Styles ========== */
+        section {
+            padding: 100px 24px;
+            position: relative;
+        }
+
+        .section-container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: var(--bg-mint);
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 100px;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: clamp(32px, 4vw, 42px);
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+        }
+
+        .section-subtitle {
+            font-size: 17px;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* ========== Pipeline Section ========== */
+        .pipeline-section {
+            background: var(--white);
+        }
+
+        .pipeline-container {
+            position: relative;
+        }
+
+        .pipeline-stages {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .stage-card {
+            flex: 1;
+            min-width: 0;
+            background: var(--bg-light);
+            border-radius: var(--radius-md);
+            padding: 24px 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .stage-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .stage-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .stage-card:hover::before {
+            width: 60%;
+        }
+
+        .stage-number {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .stage-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .stage-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .stage-desc {
+            font-size: 12px;
+            color: var(--text-light);
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stage-card:hover .stage-desc {
+            opacity: 1;
+            max-height: 60px;
+        }
+
+        .pipeline-arrows {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: -20px;
+            margin-bottom: 40px;
+        }
+
+        .pipeline-arrow {
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-light) 0%, transparent 100%);
+            position: relative;
+        }
+
+        .pipeline-arrow::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            border-left: 6px solid var(--primary-light);
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+
+        .pipeline-note {
+            text-align: center;
+            padding: 20px;
+            background: var(--accent-blue);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            color: var(--text-gray);
+        }
+
+        .pipeline-note code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--white);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--primary);
+        }
+
+        /* ========== Tech Stack Section ========== */
+        .tech-section {
+            background: var(--bg-light);
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .tech-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+
+        .tech-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .tech-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tech-title .icon {
+            font-size: 28px;
+        }
+
+        .tech-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .tech-table th {
+            text-align: left;
+            padding: 12px 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(30, 111, 92, 0.1);
+        }
+
+        .tech-table td {
+            padding: 16px 0;
+            font-size: 14px;
+            color: var(--text-gray);
+            border-bottom: 1px solid rgba(30, 111, 92, 0.05);
+        }
+
+        .tech-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .tech-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-mit { background: #dcfce7; color: #166534; }
+        .badge-bsd { background: #dbeafe; color: #1e40af; }
+        .badge-apache { background: #fef3c7; color: #92400e; }
+
+        .model-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .model-card {
+            background: var(--bg-light);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .model-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .model-desc {
+            font-size: 14px;
+            color: var(--text-gray);
+            margin-bottom: 12px;
+        }
+
+        .model-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--accent-amber);
+            color: #92400e;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+        }
+
+        /* ========== Challenges Section ========== */
+        .challenges-section {
+            background: var(--white);
+        }
+
+        .challenges-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 32px;
+        }
+
+        .challenge-card {
+            background: var(--bg-light);
+            border-radius: var(--radius-lg);
+            padding: 36px;
+            transition: all 0.3s ease;
+        }
+
+        .challenge-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .challenge-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .challenge-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--accent-blue);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .challenge-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .challenge-problem {
+            font-size: 15px;
+            color: var(--text-gray);
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+
+        .challenge-solution {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            font-size: 14px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .challenge-solution::before {
+            content: '✓';
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .highlight-tags {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .highlight-tag {
+            padding: 6px 14px;
+            background: var(--bg-mint);
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 100px;
+        }
+
+        .label-viz-card {
+            background: var(--bg-light);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+        }
+
+        .label-viz-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .label-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .label-item {
+            padding: 12px 20px;
+            background: var(--white);
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-gray);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .label-item:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: scale(1.05);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .label-item.active {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .label-detail {
+            margin-top: 24px;
+            padding: 20px;
+            background: var(--accent-blue);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            color: var(--text-gray);
+            text-align: center;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ========== Stats Section ========== */
+        .stats-section {
+            background: linear-gradient(180deg, var(--bg-mint) 0%, var(--white) 100%);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 48px 36px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-number {
+            font-size: 56px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .stat-desc {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .stat-trend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+        }
+
+        .stats-cta {
+            text-align: center;
+            margin-top: 48px;
+            padding: 32px;
+            background: var(--accent-blue);
+            border-radius: var(--radius-lg);
+        }
+
+        .stats-cta-text {
+            font-size: 16px;
+            color: var(--text-gray);
+            margin-bottom: 16px;
+        }
+
+        /* ========== Footer ========== */
+        footer {
+            background: var(--text-dark);
+            color: var(--white);
+            padding: 48px 24px;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .footer-tagline {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 24px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .footer-link {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--white);
+        }
+
+        .footer-copy {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* ========== Animations ========== */
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease-out;
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ========== Responsive ========== */
+        @media (max-width: 1024px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                gap: 48px;
+            }
+
+            .hero-visual {
+                height: 400px;
+            }
+
+            .pipeline-stages {
+                flex-wrap: wrap;
+            }
+
+            .stage-card {
+                min-width: calc(50% - 8px);
+            }
+
+            .tech-grid,
+            .challenges-grid,
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero-title {
+                font-size: 36px;
+            }
+
+            .stage-card {
+                min-width: 100%;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+            }
+
+            .btn-primary, .btn-secondary {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* ========== Scrollbar ========== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-light);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <div class="logo-title">膝关节MRI数据处理系统</div>
+                <div class="logo-subtitle">面向MLLM的医疗多模态自动化预处理与标注系统</div>
+            </div>
+            <div class="nav-links">
+                <a href="#pipeline" class="nav-link">系统流程</a>
+                <a href="#tech" class="nav-link">技术组件</a>
+                <a href="#challenges" class="nav-link">设计亮点</a>
+                <a href="#stats" class="nav-link">应用价值</a>
+                <a href="#" class="btn-demo">体验Demo</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span>🎯</span>
+                    <span>4C2026 设计竞赛作品</span>
+                </div>
+                <h1 class="hero-title">
+                    医疗多模态数据<br><span>预处理流水线</span>
+                </h1>
+                <h2 class="hero-subtitle">基于 MLLM 的膝关节 MRI 自动化标注系统</h2>
+                <p class="hero-description">
+                    从 DICOM 到结构化训练集，全流程零代码配置。
+                    集成 Qwen3-VL 视觉大模型与 Qwen3-1.7B 轻量语言模型，
+                    降低 90% 人工标注成本。
+                </p>
+                <div class="hero-actions">
+                    <a href="#pipeline" class="btn-primary">
+                        <span>查看架构</span>
+                        <span>→</span>
+                    </a>
+                    <a href="#" class="btn-secondary">
+                        <span>申请试用</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="hero-visual">
+                <div class="flow-container">
+                    <div class="flow-node">
+                        <div class="node-icon">📁</div>
+                        <div class="node-label">DICOM 序列</div>
+                    </div>
+                    <div class="flow-node">
+                        <div class="node-icon">🧠</div>
+                        <div class="node-label">NIfTI 格式</div>
+                    </div>
+                    <div class="flow-node">
+                        <div class="node-icon">🎬</div>
+                        <div class="node-label">MP4 视频</div>
+                    </div>
+                    <div class="flow-node">
+                        <div class="node-icon">🏷️</div>
+                        <div class="node-label">结构化标签</div>
+                    </div>
+
+                    <div class="flow-line"></div>
+                    <div class="flow-line"></div>
+                    <div class="flow-line"></div>
+
+                    <div class="flow-particle"></div>
+                    <div class="flow-particle"></div>
+                    <div class="flow-particle"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 流水线 Section -->
+    <section id="pipeline" class="pipeline-section">
+        <div class="section-container">
+            <div class="section-header animate-on-scroll">
+                <div class="section-badge">7 阶段流水线</div>
+                <h2 class="section-title">管道过滤器架构</h2>
+                <p class="section-subtitle">每个阶段基于统一 BaseStage，支持独立启用/禁用，容错降级</p>
+            </div>
+
+            <div class="pipeline-container">
+                <div class="pipeline-stages">
+                    <div class="stage-card animate-on-scroll">
+                        <div class="stage-number">STAGE 01</div>
+                        <div class="stage-icon">📁</div>
+                        <div class="stage-name">DICOM 解析</div>
+                        <div class="stage-desc">自动检测序列/合并多序列</div>
+                    </div>
+
+                    <div class="stage-card animate-on-scroll">
+                        <div class="stage-number">STAGE 02</div>
+                        <div class="stage-icon">🧠</div>
+                        <div class="stage-name">NIfTI 转换</div>
+                        <div class="stage-desc">标准化医学影像格式</div>
+                    </div>
+
+                    <div class="stage-card animate-on-scroll">
+                        <div class="stage-number">STAGE 03</div>
+                        <div class="stage-icon">🎬</div>
+                        <div class="stage-name">MP4 视频生成</div>
+                        <div class="stage-desc">3D影像可视化</div>
+                    </div>
+
+                    <div class="stage-card animate-on-scroll">
+                        <div class="stage-number">STAGE 04</div>
+                        <div class="stage-icon">🤖</div>
+                        <div class="stage-name">报告AI提取</div>
+                        <div class="stage-desc">Qwen3-VL视觉理解</div>
+                    </div>
+
+                    <div class="stage-card animate-on-scroll">
+                        <div class="stage-number">STAGE 05</div>
+                        <div class="stage-icon">🏷️</div>
+                        <div class="stage-name">标签知识图谱</div>
+                        <div class="stage-desc">40+医学标签生成</div>
+                    </div>
+
+                    <div class="stage-card animate-on-scroll">
+                        <div class="stage-number">STAGE 06</div>
+                        <div class="stage-icon">🧪</div>
+                        <div class="stage-name">测试集构建</div>
+                        <div class="stage-desc">自动路径管理</div>
+                    </div>
+
+                    <div class="stage-card animate-on-scroll">
+                        <div class="stage-number">STAGE 07</div>
+                        <div class="stage-icon">⚙️</div>
+                        <div class="stage-name">JSON路径管理</div>
+                        <div class="stage-desc">绝对路径自动更新</div>
+                    </div>
+                </div>
+
+                <div class="pipeline-note animate-on-scroll">
+                    基于 <code>BaseStage</code> 统一抽象 · 支持 <code>--skip-stages</code> / <code>--only-stages</code> 灵活配置
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 技术组件 Section -->
+    <section id="tech" class="tech-section">
+        <div class="section-container">
+            <div class="section-header animate-on-scroll">
+                <div class="section-badge">开源组件</div>
+                <h2 class="section-title">核心依赖与 AI 模型</h2>
+                <p class="section-subtitle">基于成熟开源生态，集成前沿多模态大模型</p>
+            </div>
+
+            <div class="tech-grid">
+                <div class="tech-card animate-on-scroll">
+                    <h3 class="tech-title">
+                        <span class="icon">📦</span>
+                        核心依赖与开源协议
+                    </h3>
+                    <table class="tech-table">
+                        <thead>
+                            <tr>
+                                <th>组件</th>
+                                <th>用途</th>
+                                <th>协议</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="tech-name">PyTorch</td>
+                                <td>深度学习框架</td>
+                                <td><span class="badge badge-apache">Apache 2.0</span></td>
+                            </tr>
+                            <tr>
+                                <td class="tech-name">Transformers</td>
+                                <td>大模型推理</td>
+                                <td><span class="badge badge-apache">Apache 2.0</span></td>
+                            </tr>
+                            <tr>
+                                <td class="tech-name">pydicom</td>
+                                <td>DICOM解析</td>
+                                <td><span class="badge badge-mit">MIT</span></td>
+                            </tr>
+                            <tr>
+                                <td class="tech-name">nibabel</td>
+                                <td>NIfTI处理</td>
+                                <td><span class="badge badge-mit">MIT</span></td>
+                            </tr>
+                            <tr>
+                                <td class="tech-name">OpenCV</td>
+                                <td>视频编码</td>
+                                <td><span class="badge badge-apache">Apache 2.0</span></td>
+                            </tr>
+                            <tr>
+                                <td class="tech-name">ModelScope</td>
+                                <td>模型加载</td>
+                                <td><span class="badge badge-apache">Apache 2.0</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="tech-card animate-on-scroll">
+                    <h3 class="tech-title">
+                        <span class="icon">🤖</span>
+                        AI 模型来源
+                    </h3>
+                    <div class="model-cards">
+                        <div class="model-card">
+                            <div class="model-name">Qwen3-VL</div>
+                            <div class="model-desc">视觉语言大模型，用于医疗报告结构化信息提取</div>
+                            <span class="model-tag">通过 ModelScope 加载</span>
+                        </div>
+                        <div class="model-card">
+                            <div class="model-name">Qwen3-1.7B</div>
+                            <div class="model-desc">轻量级语言模型，用于医学标签生成</div>
+                            <span class="model-tag">轻量化部署</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 设计亮点 Section -->
+    <section id="challenges" class="challenges-section">
+        <div class="section-container">
+            <div class="section-header animate-on-scroll">
+                <div class="section-badge">技术突破</div>
+                <h2 class="section-title">设计重点 & 难点攻克</h2>
+                <p class="section-subtitle">从工程化落地出发，解决真实场景中的技术挑战</p>
+            </div>
+
+            <div class="challenges-grid">
+                <div class="challenge-card animate-on-scroll">
+                    <div class="challenge-header">
+                        <div class="challenge-icon">⚠️</div>
+                        <div class="challenge-title">DICOM 序列处理挑战</div>
+                    </div>
+                    <p class="challenge-problem">
+                        不同厂商设备输出格式差异大，多序列合并复杂，
+                        缺失帧处理需要鲁棒性设计。
+                    </p>
+                    <div class="challenge-solution">
+                        自动序列检测 + 统一 JSON 中间格式
+                    </div>
+                    <div class="highlight-tags">
+                        <span class="highlight-tag">鲁棒解析</span>
+                        <span class="highlight-tag">容错降级</span>
+                    </div>
+                </div>
+
+                <div class="challenge-card animate-on-scroll">
+                    <div class="challenge-header">
+                        <div class="challenge-icon">⚠️</div>
+                        <div class="challenge-title">MLLM 输出稳定性控制</div>
+                    </div>
+                    <p class="challenge-problem">
+                        大模型输出格式不稳定，JSON 结构容易出错，
+                        标签一致性难以保证。
+                    </p>
+                    <div class="challenge-solution">
+                        温度 0.01 + JSON Schema 强制校验 + 正则提取
+                    </div>
+                    <div class="highlight-tags">
+                        <span class="highlight-tag">Few-shot 提示</span>
+                        <span class="highlight-tag">结构化 Prompt</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="label-viz-card animate-on-scroll">
+                <h3 class="label-viz-title">医学标签体系可视化</h3>
+                <div class="label-cloud">
+                    <div class="label-item" data-detail="内侧/外侧，损伤分级(0-3级)，撕裂类型，是否异常">半月板</div>
+                    <div class="label-item" data-detail="前交叉/后交叉/内侧副/外侧副/髌韧带，股四头肌腱">韧带</div>
+                    <div class="label-item" data-detail="软骨损伤/变薄/缺损，骨髓水肿，骨挫伤，骨质增生，骨折">骨软骨</div>
+                    <div class="label-item" data-detail="髌骨软化/高位/低位，髌骨不稳/倾斜，髌股关节紊乱">髌股关节</div>
+                    <div class="label-item" data-detail="关节积液(无/少量/中量/大量)，滑膜炎，滑膜增生">滑膜关节腔</div>
+                    <div class="label-item" data-detail="是否存在，类型(贝克囊肿/滑液囊肿/腘窝囊肿)">囊性病变</div>
+                    <div class="label-item" data-detail="髂胫束异常，腘肌腱异常，关节游离体">其他结构</div>
+                    <div class="label-item" data-detail="退行性/创伤性/炎症性/术后改变">病理机制</div>
+                </div>
+                <div class="label-detail" id="labelDetail">
+                    点击上方标签查看详细字段结构
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 应用价值 Section -->
+    <section id="stats" class="stats-section">
+        <div class="section-container">
+            <div class="section-header animate-on-scroll">
+                <div class="section-badge">应用价值</div>
+                <h2 class="section-title">数据对比 & 效果验证</h2>
+                <p class="section-subtitle">真实场景验证，显著提升医疗数据处理效率</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card animate-on-scroll">
+                    <div class="stat-trend">📉</div>
+                    <div class="stat-number">87%</div>
+                    <div class="stat-label">人工标注成本降低</div>
+                    <div class="stat-desc">对比传统纯人工标注流程</div>
+                </div>
+
+                <div class="stat-card animate-on-scroll">
+                    <div class="stat-trend">📈</div>
+                    <div class="stat-number">42%</div>
+                    <div class="stat-label">标签一致性提升</div>
+                    <div class="stat-desc">基于结构化 Prompt 工程设计</div>
+                </div>
+
+                <div class="stat-card animate-on-scroll">
+                    <div class="stat-trend">⚡</div>
+                    <div class="stat-number">&lt;2min</div>
+                    <div class="stat-label">单病例端到端处理</div>
+                    <div class="stat-desc">从 DICOM 到结构化标签</div>
+                </div>
+            </div>
+
+            <div class="stats-cta animate-on-scroll">
+                <p class="stats-cta-text">
+                    适用于医疗 AI 研究、辅助诊断系统开发、多中心数据治理
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">膝关节MRI数据处理系统</div>
+            <p class="footer-tagline">端到端的数据处理流水线，用于膝关节MRI医学影像数据的自动化处理</p>
+            <p class="footer-copy">MIT License</p>
+        </div>
+    </footer>
+
+    <script>
+        // 导航栏滚动效果
+        const navbar = document.querySelector('.navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // 导航高亮
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // 滚动动画
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.animate-on-scroll').forEach(el => {
+            observer.observe(el);
+        });
+
+        // 标签交互
+        const labelItems = document.querySelectorAll('.label-item');
+        const labelDetail = document.getElementById('labelDetail');
+
+        labelItems.forEach(item => {
+            item.addEventListener('click', () => {
+                labelItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                labelDetail.textContent = item.dataset.detail;
+            });
+        });
+
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

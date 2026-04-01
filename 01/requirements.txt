@@ -1,0 +1,26 @@
+# 膝关节MRI数据处理系统依赖
+# 安装命令: pip install -r requirements.txt
+
+# 核心依赖
+numpy>=1.21.0
+pillow>=8.0.0
+
+# DICOM处理
+pydicom>=2.3.0
+nibabel>=4.0.0
+
+# 视频处理
+opencv-python>=4.5.0
+
+# AI模型 (报告提取和标签生成)
+torch>=2.0.0
+transformers>=4.30.0
+modelscope>=1.9.0
+
+# 进度条
+tqdm>=4.60.0
+
+# 可选依赖（用于开发）
+# pytest>=7.0.0
+# black>=22.0.0
+# flake8>=4.0.0
